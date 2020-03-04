@@ -5,7 +5,7 @@
 npm install
 ```
 
-### Сreate a private configuration file
+### Сreate a private login configuration file
 ```
 npm run init
 ```

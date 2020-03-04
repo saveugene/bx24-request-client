@@ -1,10 +1,12 @@
-const BX24Rest = require('./rest/bx24');
-const fs = require('fs').promises;
+const BX24 = require('./rest/bx24');
 
 (async function () {
     try {
-        let BX = new BX24Rest(JSON.parse(await fs.readFile('./config/login.json', 'utf8')));
-        // BX.CallMethod();
+        const BX = await new BX24();
+        
+        let data = await BX.call();
+        
+        console.log(data);
 
     } catch (error) {
         console.log(error);

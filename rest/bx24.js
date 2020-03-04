@@ -1,62 +1,41 @@
 const RP = require('request-promise-native');
-const fs = require('fs');
+const FSP = require('fs').promises;
+const URLP = require('url').parse;
 
-function parseURLQS(url) {
-    var queryString = url.split('?')[1];
-    var obj = {};
-    if (queryString) {
-        queryString = queryString.split('#')[0];
-        var arr = queryString.split('&');
-        for (var i = 0; i < arr.length; i++) {
-            var a = arr[i].split('=');
-            var paramName = a[0];
-            var paramValue = typeof (a[1]) === 'undefined' ? true : a[1];
-            paramName = paramName.toLowerCase();
-            if (typeof paramValue === 'string') paramValue = paramValue.toLowerCase();
-            if (paramName.match(/\[(\d+)?\]$/)) {
-                var key = paramName.replace(/\[(\d+)?\]/, '');
-                if (!obj[key]) obj[key] = [];
-                if (paramName.match(/\[\d+\]$/)) {
-                    var index = /\[(\d+)\]/.exec(paramName)[1];
-                    obj[key][index] = paramValue;
-                } else {
-                    obj[key].push(paramValue);
-                }
-            } else {
-                if (!obj[paramName]) {
-                    obj[paramName] = paramValue;
-                } else if (obj[paramName] && typeof obj[paramName] === 'string') {
-                    obj[paramName] = [obj[paramName]];
-                    obj[paramName].push(paramValue);
-                } else {
-                    obj[paramName].push(paramValue);
-                }
-            }
+class BX24 {
+    constructor() {
+        return (async () => {
+            await this._loginSet();
+            await this._authSet();
+            return this;
+        })();
+    }
+    static configPath = {
+        login: "./config/login.json",
+        auth: "./config/auth.json"
+    }
+    _authIsExpired() {
+        if (Number(this.auth.expires.toString() + "000") < new Date().getTime()) return false;
+        else return true;
+    }
+    async _loginSet() {
+        this.login = await BX24.loginRead();
+    }
+    async _authSet() {
+        try {
+            this.auth = await BX24.authRead();
+        } catch (err) {
+            this.auth = await this._authGet();
+            await BX24.authWrite(this.auth)
+            console.log('Authentication file was created');
+        }
+        if (!this._authIsExpired()) {
+            this.auth = await this._authRefresh();
+            await BX24.authWrite(this.auth)
+            console.log('Authentication file was recreated');
         }
     }
-    return obj;
-}
-
-function writeFileRecursive(filename, content, charset) {
-    filename.split('/').slice(0, -1).reduce((last, folder) => {
-        let folderPath = last ? (last + '/' + folder) : folder
-        if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath)
-        return folderPath;
-    })
-    return fs.promises.writeFile(filename, content, charset)
-}
-
-function isAuthRelevant(auth) {
-    if (Number(auth.expires.toString() + "000") < new Date().getTime()) return false;
-    else return true;
-}
-
-class BX24Rest {
-    constructor(login) {
-        this.login = login;
-        this._SetAuth;
-    }
-    async _GetAuth() {
+    async _authGet() {
         let response = await RP({
             method: 'GET',
             uri: `https://${this.login.login}:${this.login.password}@${this.login.portal}/oauth/authorize/?client_id=${this.login.client_id}`,
@@ -64,48 +43,45 @@ class BX24Rest {
         });
         return JSON.parse(await RP({
             method: 'GET',
-            uri: `https://oauth.bitrix.info/oauth/token/?grant_type=authorization_code&client_id=${this.login.client_id}&client_secret=${this.login.client_secret}&code=${parseURLQS(response.request.uri.href).code}`,
+            uri: `https://oauth.bitrix.info/oauth/token/?grant_type=authorization_code&client_id=${this.login.client_id}&client_secret=${this.login.client_secret}&code=${URLP(response.request.uri.href, true).query.code}`,
         }));
     }
-    async _RefreshAuth() {
+    async _authRefresh() {
         return JSON.parse(await RP({
             method: 'GET',
             uri: `https://oauth.bitrix.info/oauth/token/?grant_type=refresh_token&client_id=${this.login.client_id}&client_secret=${this.login.client_secret}&refresh_token=${this.auth.refresh_token}`,
         }));
     }
-    static async WriteAuth(auth) {
-        return writeFileRecursive('./config/auth.json', JSON.stringify(auth), 'utf8');
+    static authWrite(auth) {
+        return BX24.jsonWrite(this.configPath.auth, auth);
     }
-    static async ReadAuth() {
-        let auth = await fs.promises.readFile('./config/auth.json', 'utf8');
-        return JSON.parse(auth);
+    static jsonWrite(path, data) {
+        path.split('/').slice(0, -1).reduce((last, folder) => {
+            let folderPath = last ? (last + '/' + folder) : folder
+            if (!FSP.access(folderPath)) FSP.mkdir(folderPath)
+            return folderPath;
+        })
+        return FSP.writeFile(path, JSON.stringify(data), 'utf-8');
     }
-    async _SetAuth() {
-        try {
-            this.auth = await BX24Rest.ReadAuth();
-        } catch (err) {
-            this.auth = await this._GetAuth();
-            await BX24Rest.WriteAuth(this.auth)
-            console.log('Authentication file was created');
-        }
-        if (!isAuthRelevant(this.auth)) {
-            this.auth = await this._RefreshAuth();
-            await BX24Rest.WriteAuth(this.auth)
-            console.log('Authentication file was recreated');
-        }
+    static async jsonRead(path) {
+        return JSON.parse(await FSP.readFile(path, 'utf-8'));
     }
-    async CallMethod(method, params) {
+    static authRead() {
+        return BX24.jsonRead(BX24.configPath.auth);
+    }
+    static loginRead() {
+        return BX24.jsonRead(BX24.configPath.login);
+    }
+    async call(method, params) {
         if (!!this.login) {
             try {
-                if (!this.auth || !isAuthRelevant(this.auth)) {
-                    await this._SetAuth();
-                }
+                if (!this.auth || !this._authIsExpired()) await this._authSet();
                 params.access_token = this.auth.access_token;
-                return RP({
+                return JSON.parse(await RP({
                     method: 'POST',
                     uri: `https://${this.login.portal}/rest/${method}`,
                     qs: params,
-                });
+                }));
             } catch (error) {
                 throw error;
             }
@@ -115,4 +91,4 @@ class BX24Rest {
     }
 }
 
-module.exports = BX24Rest;
+module.exports = BX24;
