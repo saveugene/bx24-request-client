@@ -25,34 +25,42 @@ const questionList = [{
 
 async function rlQuestionPromisified(quest, rl) {
     return await new Promise((resolve) => {
-        rl.question(quest.question, answer => {
-            resolve(answer);
-        })
+        rl.question(quest.question, answer => resolve(answer));
     })
 }
 
-function writeFileRecursive(filename, content, charset) {
-    filename.split('/').slice(0, -1).reduce((last, folder) => {
-        let folderPath = last ? (last + '/' + folder) : folder
-        if (!fs.access(folderPath)) fs.mkdir(folderPath)
-        return folderPath
+async function writeFileRecursive(filename, content, charset) {
+    await filename.split('/').slice(0, -1).reduce(async (last, folder) => {
+        let folderPath = last ? (last + '/' + folder) : folder;
+        try {
+            await fs.access(folderPath);
+        } catch (error) {
+            await fs.mkdir(folderPath);
+        }
     })
-    return fs.writeFile(filename, content, charset)
+    return fs.writeFile(filename, content, charset);
 }
 
 (async function () {
-    let login = {};
+    try {
+        let login = {};
 
-    let rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    });
+        let rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
 
-    for (let quest of questionList) {
-        login[quest.key] = await rlQuestionPromisified(quest, rl);
+        for (let quest of questionList)
+            login[quest.key] = await rlQuestionPromisified(quest, rl);
+
+        rl.close();
+        console.log(login);
+
+        await writeFileRecursive('./config/login.json', JSON.stringify(login), 'utf8');
+        
+        console.log('Login file was successfully created');
+    } catch (error) {
+        console.log(error);
     }
-    rl.close();
-    console.log(login);
-    await writeFileRecursive('./config/login.json', JSON.stringify(login), 'utf8');
-    console.log('Login file was successfully created');
+
 })()

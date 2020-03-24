@@ -72,10 +72,10 @@ class BX24 {
     static loginRead() {
         return BX24.jsonRead(BX24.configPath.login);
     }
-    async call(method, params) {
+    async call(method, params = {}) {
         if (!!this.login) {
             try {
-                if (!this.auth || !this._authIsExpired()) await this._authSet();
+                if (!this.auth || this._authIsExpired()) await this._authSet();
                 params.access_token = this.auth.access_token;
                 return JSON.parse(await RP({
                     method: 'POST',
