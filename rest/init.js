@@ -29,8 +29,8 @@ async function rlQuestionPromisified(quest, rl) {
     })
 }
 
-async function writeFileRecursive(filename, content, charset) {
-    await filename.split('/').slice(0, -1).reduce(async (last, folder) => {
+async function writeFileRecursive(path, content, charset) {
+    await path.split('/').slice(0, -1).reduce(async (last, folder) => {
         let folderPath = last ? (last + '/' + folder) : folder;
         try {
             await fs.access(folderPath);
@@ -38,7 +38,7 @@ async function writeFileRecursive(filename, content, charset) {
             await fs.mkdir(folderPath);
         }
     })
-    return fs.writeFile(filename, content, charset);
+    return fs.writeFile(path, content, charset);
 }
 
 (async function () {
@@ -55,7 +55,7 @@ async function writeFileRecursive(filename, content, charset) {
 
         rl.close();
         console.log(login);
-
+        
         await writeFileRecursive('./config/login.json', JSON.stringify(login), 'utf8');
         
         console.log('Login file was successfully created');
