@@ -52,7 +52,7 @@ class BX24 {
             this.auth = await this._authRefresh();
             console.log('Authentication file was recreated');
         }
-        await this.authWrite(this.auth);
+        await BX24.authWrite(this.auth);
     }
 
     async _authGet() {
@@ -96,13 +96,15 @@ class BX24 {
         if (!!this.login) {
             try {
                 if (!this.auth || this._authIsExpired()) await this._authSet();
+
+                let url = `https://${this.login.portal}/rest/${method}`;
                 if (typeof params === "string") {
                     params += `&access_token=${this.auth.access_token}`;
-                    return (await axios.post(`https://${this.login.portal}/rest/${method + params}`)).data;
+                    return (await axios.post(url + params)).data;
                 }
                 else {
                     params.access_token = this.auth.access_token;
-                    return (await axios.post(`https://${this.login.portal}/rest/${method}`, params)).data
+                    return (await axios.post(url, params)).data;
                 }
             } catch (error) {
                 throw error;
@@ -113,7 +115,8 @@ class BX24 {
     }
 
     async batch(params) {
-        qs = `?halt=${params.halt}`;
+        let qs = `?halt=${params.halt}`;
+
         for (const call in params.cmd)
             qs += `&cmd[${call}]=` + params.cmd[call].method + "?" + BX24.buildQS(params.cmd[call].params);
 
