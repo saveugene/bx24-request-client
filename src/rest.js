@@ -2,8 +2,10 @@ const axios = require('axios').default;
 const Auth = require('./auth');
 
 module.exports = class Rest extends Auth {
-    constructor() {
-        super();
+    constructor(params = null) {
+        super(params);
+        if (params !== null)
+            this.webhook = params.webhook;
     }
 
     static buildQS(obj, prefix) {
@@ -20,23 +22,33 @@ module.exports = class Rest extends Auth {
         return str.join("&");
     }
 
-    async call(method, params = {}) {
-        await this.installEnd;
-        try {
-            if (!this.auth || this.isExpired()) this.install();
-            let url = `https://${this.auth.portal}/rest/${method}`;
-            if (typeof params === "string") {
+    async execCall(url, params) {
+        if (typeof params === "string") {
+            if(this.auth)
                 params += `&access_token=${this.auth.access_token}`;
-                return (await axios.post(url + params)).data;
-            }
-            else {
+            return (await axios.post(url, params)).data;
+        }
+        else {
+            if(this.auth)
                 params.access_token = this.auth.access_token;
-                return (await axios.post(url, params)).data;
+            return (await axios.post(url, params)).data;
+        }
+    }
+
+    async call(method, params = {}) {
+        try {
+            let url;
+            if (this.webhook) 
+                url = this.webhook + method;
+            else {
+                await this.installEnd;
+                if (!this.auth || this.isExpired()) this.install();
+                url = `https://${this.auth.portal}/rest/${method}`;
             }
+            return this.execCall(url, params);
         } catch (error) {
             throw error;
         }
-
     }
 
     async batch(params) {

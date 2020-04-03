@@ -6,8 +6,9 @@ const fs = require('fs'),
 module.exports = class Auth {
     static dir = "./auth";
 
-    constructor() {
-        this.install();
+    constructor(params) {
+        if(params === null)
+            this.install();
     }
 
     static exceptionHandler(type) {
@@ -50,7 +51,8 @@ module.exports = class Auth {
     static write(name, authorization) {
         let pathStr = `${Auth.dir}/${name}/auth.json`;
         fs.mkdirSync(path.dirname(pathStr), { recursive: true });
-        return fs.writeFileSync(path.resolve(pathStr), JSON.stringify(authorization), 'utf-8');
+        fs.writeFileSync(path.resolve(pathStr), JSON.stringify(authorization), 'utf-8');
+        console.log("Auth "+chalk.cyan(name) + ' has been successfully created');
     }
 
     static getList() {
