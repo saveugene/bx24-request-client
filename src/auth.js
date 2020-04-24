@@ -15,7 +15,7 @@ module.exports = class Auth {
         switch (type) {
             case 'NOAUTH':
                 console.log(chalk.red('No auth profiles'));
-                console.log('Try: ' + chalk.cyan('bx-auth') + chalk.green(' --new'));
+                console.log(`Try: ${chalk.cyan('bx-auth')} ${chalk.green(' --new')}`);
                 process.exit();
         }
     }
@@ -27,7 +27,7 @@ module.exports = class Auth {
             Auth.exceptionHandler('NOAUTH');
         }
         if (this.isExpired()) {
-            console.log('Auth is' + chalk.red('expired'));
+            console.log(`Auth is ${chalk.red('expired')}`);
             this.installEnd = this.refresh(this.auth.name);
         }
     }
@@ -41,7 +41,7 @@ module.exports = class Auth {
         let auth = (await axios.get(`https://oauth.bitrix.info/oauth/token/?grant_type=refresh_token&client_id=${this.auth.client_id}&client_secret=${this.auth.client_secret}&refresh_token=${this.auth.refresh_token}`)).data;
         this.auth = Auth.supplement(auth, this.auth);
         Auth.write(this.auth.name, this.auth);
-        console.log('Auth ' + chalk.cyan(this.auth.name) + ' has been ' + chalk.green('refreshed'));
+        console.log(`Auth ${chalk.cyan(this.auth.name)} has been ${chalk.green('refreshed')}`);
     }
 
     static read() {
@@ -52,7 +52,7 @@ module.exports = class Auth {
         let pathStr = `${Auth.dir}/${name}/auth.json`;
         fs.mkdirSync(path.dirname(pathStr), { recursive: true });
         fs.writeFileSync(path.resolve(pathStr), JSON.stringify(authorization), 'utf-8');
-        console.log("Auth "+chalk.cyan(name) + ' has been successfully created');
+        console.log(`Auth ${chalk.cyan(name)} has been successfully created`);
     }
 
     static getList() {
@@ -162,7 +162,7 @@ module.exports = class Auth {
         let questions = [{
             type: 'list',
             name: 'name',
-            message: "Choose which auth to use",
+            message: 'Choose which auth to use',
             choices: Auth.getList()
         }];
         Auth.prompt(questions).then((answers, reject) => {
@@ -175,7 +175,7 @@ module.exports = class Auth {
         let questions = [{
             type: 'list',
             name: 'name',
-            message: "Choose which auth to delete",
+            message: 'Choose which auth to delete',
             choices: Auth.getList()
         }];
         Auth.prompt(questions).then((answers, reject) => {
@@ -188,7 +188,7 @@ module.exports = class Auth {
     static list() {
         let i = 1;
         for (const authName of Auth.getList()) {
-            console.log(i + ") " + chalk.cyan(authName));
+            console.log(`${i} ) ${chalk.cyan(authName)}`);
             i++;
         }
     }
