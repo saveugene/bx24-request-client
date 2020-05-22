@@ -14,22 +14,22 @@ sudo npm link
 ## Auth profile actions:
 1. Create new
 ```
-bx-auth --new or bx-auth -n
+bx-auth new
 ```
 
-3. Show profile list
+3. Show list
 ```
-bx-auth --list or bx-auth -l
+bx-auth list
 ```
 
 2. Delete
 ```
-bx-auth --delete or bx-auth -d
+bx-auth delete (--name <name>)
 ```
 
 3. Change
 ```
-bx-auth --change or bx-auth -c
+bx-auth change (--name <name>)
 ```
 
 ## Run workspace
