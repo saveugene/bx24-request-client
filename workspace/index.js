@@ -1,10 +1,10 @@
-const Rest = require('../src/rest');
+const Client = require('../src/client');
 
 (async () => {
     try {
-        const rest = new Rest();
+        const client = new Client();
         
-        let response = await rest.call();
+        let response = await client.call_method();
 
         console.log(response);
 

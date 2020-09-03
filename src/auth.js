@@ -18,7 +18,7 @@ module.exports = class Auth {
             Auth.error('NOAUTH');
         }
         if (this.isExpired()) {
-            Auth.logs('EXPIRED', this.auth.name);
+            Auth.log_it('EXPIRED', this.auth.name);
             this.installEnd = this.refresh(this.auth.name);
         }
     }
@@ -32,18 +32,18 @@ module.exports = class Auth {
         let auth = (await axios.get(`https://oauth.bitrix.info/oauth/token/?grant_type=refresh_token&client_id=${this.auth.client_id}&client_secret=${this.auth.client_secret}&refresh_token=${this.auth.refresh_token}`)).data;
         this.auth = Auth.supplement(auth, this.auth);
         Auth.write(this.auth.name, this.auth);
-        Auth.logs('REFRESHED', this.auth.name);
+        Auth.log_it('REFRESHED', this.auth.name);
     }
 
     static error(type) {
         switch (type) {
             case 'NOAUTH':
-                Auth.logs('NOAUTH');
+                Auth.log_it('NOAUTH');
                 process.exit();
         }
     }
 
-    static logs(type, value = false) {
+    static log_it(type, value = false) {
         let message = "";
         switch (type) {
             case 'CREATED':
@@ -76,7 +76,7 @@ module.exports = class Auth {
         let pathStr = `${Auth.dir}/${name}/auth.json`;
         fs.mkdirSync(path.dirname(pathStr), { recursive: true });
         fs.writeFileSync(path.resolve(pathStr), JSON.stringify(authorization), 'utf-8');
-        Auth.logs('CREATED', name);
+        Auth.log_it('CREATED', name);
     }
 
 

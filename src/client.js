@@ -1,7 +1,7 @@
 const axios = require('axios').default;
 const Auth = require('./auth');
 
-module.exports = class Rest extends Auth {
+module.exports = class Client extends Auth {
     constructor(params = null) {
         super(params);
         if (params !== null)
@@ -15,14 +15,14 @@ module.exports = class Rest extends Auth {
                 let k = prefix ? prefix + "[" + p + "]" : p,
                     v = obj[p];
                 str.push((v !== null && typeof v === "object") ?
-                    Rest.buildQS(v, k) :
+                    Client.buildQS(v, k) :
                     encodeURIComponent(k) + "=" + encodeURIComponent(v));
             }
         }
         return str.join("&");
     }
 
-    async execCall(url, params) {
+    async exec_call_method(url, params) {
         if (typeof params === "string") {
             if (this.auth)
                 params += `&access_token=${this.auth.access_token}`;
@@ -35,7 +35,7 @@ module.exports = class Rest extends Auth {
         }
     }
 
-    async call(method, params = {}) {
+    async call_method(method, params = {}) {
         try {
             let url;
             if (this.webhook)
@@ -45,7 +45,7 @@ module.exports = class Rest extends Auth {
                 if (!this.auth || this.isExpired()) this.install();
                 url = `https://${this.auth.portal}/rest/${method}`;
             }
-            return this.execCall(url, params);
+            return this.exec_call_method(url, params);
         } catch (error) {
             throw error;
         }
@@ -56,9 +56,9 @@ module.exports = class Rest extends Auth {
         let qs = `?halt=${halt}`;
 
         for (const cmd in cmd_dict)
-            qs += `&cmd[${cmd}]=` + cmd_dict[cmd].method + "?" + Rest.buildQS(cmd_dict[cmd].params);
+            qs += `&cmd[${cmd}]=` + cmd_dict[cmd].method + "?" + Client.buildQS(cmd_dict[cmd].params);
 
-        return this.call('batch', qs);
+        return this.call_method('batch', qs);
     }
 
     static batch_packer(method, parameters) {
